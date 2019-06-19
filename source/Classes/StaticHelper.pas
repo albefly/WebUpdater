@@ -9,6 +9,7 @@ type
 public
 
     class function GetAppVersion(): string;
+    class function GetTempFile(const Extension: string): string;
 
 private
 
@@ -58,6 +59,19 @@ begin
         FreeMem(VerInfo, VerInfoSize);
       end;
   end;
+end;
+
+class function StaticHelperClass.GetTempFile(const Extension: string): string;
+var
+  charBuffer: array[0..MAX_PATH - 1] of Char;
+  filename: string;
+  aFile: string;
+begin
+
+    GetTempPath(MAX_PATH, charBuffer);
+    GetTempFileName(charBuffer, '~', 0, charBuffer);
+    Result := ChangeFileExt(charBuffer, Extension);
+
 end;
 
 end.

@@ -57,6 +57,7 @@ procedure TMainFormClass.FormCreate(Sender: TObject);
 begin
 
     updateHelper := UpdateHelperClass.Create; // can provide all init info in constructor if needed
+    memo.Lines.Add('App version: ' + StaticHelperClass.GetAppVersion);
 
 end;
 

@@ -66,5 +66,6 @@ object UpdateFormClass: TUpdateFormClass
     Width = 337
     Height = 17
     TabOrder = 4
+    Visible = False
   end
 end

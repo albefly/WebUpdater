@@ -1,9 +1,7 @@
 ModelSupport_ICC_Eval_XE/*
 thirdparty/AsyncCalls/Sources.zip
 Profiling/*
-output/*
 *.dcu
-*.exe
 *.~pas
 *.ddp
 *.drc
@@ -28,3 +26,5 @@ ICC_Eval_XE_project.tvsconfig
 Source/Modules/Images/Cameras/Lcms/original/*.dll
 Source/Thirdparty/
 Source/Modules/Images/Cameras/Lcms/original/*.lib
+**/__recovery/*
+/source/Win32/*

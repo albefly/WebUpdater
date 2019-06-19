@@ -71,8 +71,7 @@ begin
 
     restRequest.Params.AddItem;
     restRequest.Params[1].name     := 'versionInfo';
-    // restRequest.Params[1].value    := AppVersion;
-    restRequest.Params[1].value    := '1.0.0.1';
+    restRequest.Params[1].value    := AppVersion;
 
     restClient.BaseURL := WebURL + '/api/AppUpdate/GetAppInfo/' + AppID;
 

@@ -81,6 +81,7 @@
         <VerInfo_Build>1</VerInfo_Build>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>FileVersion=1.0.0.1</VerInfo_Keys>
+		<VerInfo_Keys>ProductVersion=1.0.0.1</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <DCC_RemoteDebug>false</DCC_RemoteDebug>

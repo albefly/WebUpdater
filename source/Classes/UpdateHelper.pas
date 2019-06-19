@@ -13,10 +13,8 @@ uses
 
 type
 
-    DownloadInfoUICallback = procedure (bytesTrnsferred: Int64; percentDone: Integer);
-
-  GetUpdateInfoCallback = procedure(updateInfo: RestAppUpdateInfoClass)
-    of object;
+  DownloadInfoUICallback = procedure (bytesTrnsferred: Int64; percentDone: Integer) of object;
+  GetUpdateInfoCallback = procedure(updateInfo: RestAppUpdateInfoClass) of object;
 
   UpdateHelperClass = class(TObject)
 
@@ -42,17 +40,18 @@ type
     updateDownloadInfoCallback: DownloadInfoUICallback;
 
     totalBytes: Int64;
-    LastWorkCount: Int64;
-    LastTicks: LongWord;
+    lastWorkCount: Int64;
+    lastTicks: LongWord;
 
 
     procedure Download (URL: string; filePath: string);
-    procedure HttpWorkBegin(ASender: TObject; AWorkMode: TWorkMode;
-      AWorkCountMax: Int64);
-    procedure HttpWork(ASender: TObject; AWorkMode: TWorkMode;
-      AWorkCount: Int64);
-    procedure HttpWorkEnd(ASender: TObject; AWorkMode: TWorkMode);
+    procedure HttpWorkBegin(sender: TObject; workMode: TWorkMode;
+      workCountMax: Int64);
+    procedure HttpWork(sender: TObject; workMode: TWorkMode;
+      workCount: Int64);
+    procedure HttpWorkEnd(sender: TObject; workMode: TWorkMode);
 
+    procedure StartUpdate(URL: string);
     procedure restCallCompleted(resultCode: Integer; response: TJSONValue);
 
   end;
@@ -60,26 +59,29 @@ type
 implementation
 
 uses
-  RestAPI, System.Threading, UpdateForm, NoPresizeFileStream, System.TimeSpan;
+  RestAPI, System.Threading, UpdateForm, NoPresizeFileStream, System.TimeSpan, StaticHelper, ShellApi;
 
 { RestAPIClass }
 
 procedure UpdateHelperClass.AppUpdate(updateInfo: RestAppUpdateInfoClass);
 
 var
-  UpdateForm: TUpdateFormClass;
+  updateForm: TUpdateFormClass;
 
 begin
 
   try
 
-    UpdateForm := TUpdateFormClass.Create(nil);
-    UpdateForm.updateInfo := updateInfo;
-    UpdateForm.ShowModal;
+    updateForm := TUpdateFormClass.Create(nil);
+    updateForm.updateInfo := updateInfo;
+    updateForm.StartUpdate := StartUpdate;
+    updateDownloadInfoCallback := updateForm.UpdateDownloadInfo;
+    updateForm.ShowModal
 
   finally
 
-    FreeAndNil(UpdateForm);
+    updateDownloadInfoCallback := nil;
+    FreeAndNil(updateForm);
 
   end;
 
@@ -170,37 +172,56 @@ begin
       end);
 end;
 
+// download file and start update
+procedure UpdateHelperClass.StartUpdate(URL: string);
+
+var
+    fileName: string;
+
+begin
+
+    fileName := StaticHelperClass.GetTempFile('.exe');
+    Download(URL, fileName);
+    if (FileExists(fileName)) then
+    begin
+        ShellExecute(0, 'open', PWideChar(fileName), nil, nil, SW_SHOWNORMAL);
+        Application.Terminate;
+        Exit;
+    end;
+
+end;
+
 procedure UpdateHelperClass.Download(URL: string; filePath: string);
 
 var
-  Buffer: TNoPresizeFileStream;
-  HttpClient: TIdHttp;
+  buffer: TNoPresizeFileStream;
+  httpClient: TIdHttp;
 
 begin
 
-  Buffer := TNoPresizeFileStream.Create(filePath, fmCreate or fmShareDenyWrite);
+  buffer := TNoPresizeFileStream.Create(filePath, fmCreate or fmShareDenyWrite);
 
   try
-    HttpClient := TIdHttp.Create(nil);
+    httpClient := TIdHttp.Create(nil);
     try
-      HttpClient.OnWorkBegin := HttpWorkBegin;
-      HttpClient.OnWork := HttpWork;
-      HttpClient.OnWorkEnd := HttpWorkEnd;
+      httpClient.OnWorkBegin := HttpWorkBegin;
+      httpClient.OnWork := HttpWork;
+      httpClient.OnWorkEnd := HttpWorkEnd;
 
-      HttpClient.Get(URL, Buffer);
+      httpClient.Get(URL, buffer);
       // wait until it is done
     finally
-      HttpClient.Free;
+      httpClient.Free;
     end;
   finally
-    Buffer.Free;
+    buffer.Free;
   end;
 end;
 
-procedure UpdateHelperClass.HttpWorkBegin(ASender: TObject;
-AWorkMode: TWorkMode; AWorkCountMax: Int64);
+procedure UpdateHelperClass.HttpWorkBegin(sender: TObject;
+workMode: TWorkMode; workCountMax: Int64);
 begin
-  if AWorkMode <> wmRead then
+  if workMode <> wmRead then
     exit;
 
   // initialize the status UI as needed...
@@ -215,55 +236,55 @@ begin
   // or TIdSync class to update the UI components as needed, and
   // let the OS dispatch repaints and other messages normally...
 
-  totalBytes := AWorkCountMax;
-  LastWorkCount := 0;
-  LastTicks := Ticks;
+  totalBytes := workCountMax;
+  lastWorkCount := 0;
+  lastTicks := Ticks64;
 
 end;
 
-procedure UpdateHelperClass.HttpWork(ASender: TObject; AWorkMode: TWorkMode;
-AWorkCount: Int64);
+procedure UpdateHelperClass.HttpWork(sender: TObject; workMode: TWorkMode;
+workCount: Int64);
 var
-  PercentDone: Integer;
-  ElapsedMS: LongWord;
-  BytesTransferred: Int64;
-  BytesPerSec: Int64;
+  percentDone: Integer;
+  elapsedMS: LongWord;
+  bytesTransferred: Int64;
+  bytesPerSec: Int64;
 
 begin
-  if AWorkMode <> wmRead then
+  if workMode <> wmRead then
     exit;
 
-  ElapsedMS := GetTickDiff(LastTicks, Ticks);
-  if ElapsedMS = 0 then
-    ElapsedMS := 1; // avoid EDivByZero error
+  elapsedMS := GetTickDiff64(lastTicks, Ticks64);
+  if elapsedMS = 0 then
+    elapsedMS := 1; // avoid EDivByZero error
 
   if totalBytes > 0 then
-    PercentDone := (Double(AWorkCount) / totalBytes) * 100.0
+    percentDone := Round((Double(workCount) / totalBytes) * 100.0)
   else
-    PercentDone := 0.0;
+    percentDone := 0;
 
-  BytesTransferred := AWorkCount - LastWorkCount;
+  bytesTransferred := workCount - lastWorkCount;
 
   // using just BytesTransferred and ElapsedMS, you can calculate
   // all kinds of speed stats - b/kb/mb/gm per sec/min/hr/day ...
-  BytesPerSec := (Double(BytesTransferred) * 1000) / ElapsedMS;
+  bytesPerSec := Round((Double(bytesTransferred) * 1000) / elapsedMS);
 
   if Assigned(updateDownloadInfoCallback) then
   begin
-    updateDownloadInfoCallback(BytesTransferred, PercentDone);
+    updateDownloadInfoCallback(bytesTransferred, percentDone);
     Application.ProcessMessages;
   end;
 
 
 
-  LastWorkCount := AWorkCount;
-  LastTicks := Ticks;
+  lastWorkCount := workCount;
+  lastTicks := Ticks64;
 
 end;
 
-procedure UpdateHelperClass.HttpWorkEnd(ASender: TObject; AWorkMode: TWorkMode);
+procedure UpdateHelperClass.HttpWorkEnd(sender: TObject; workMode: TWorkMode);
 begin
-  if AWorkMode <> wmRead then
+  if workMode <> wmRead then
     exit;
 
   // finalize the status UI as needed...
