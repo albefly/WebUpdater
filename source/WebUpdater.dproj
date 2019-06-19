@@ -106,16 +106,18 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="Forms\MainForm.pas">
-            <Form>Form1</Form>
+            <Form>MainFormClass</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Classes\UpdateHelper.pas"/>
         <DCCReference Include="Forms\UpdateForm.pas">
-            <Form>Form2</Form>
+            <Form>UpdateFormClass</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Classes\RestAPI.pas"/>
         <DCCReference Include="Classes\StaticHelper.pas"/>
+        <DCCReference Include="Classes\RestAppUpdateInfo.pas"/>
+        <DCCReference Include="Classes\NoPresizeFileStream.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -5,10 +5,10 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  UpdateHelper, Vcl.StdCtrls;
+  UpdateHelper, Vcl.StdCtrls, RestAppUpdateInfo;
 
 type
-  TForm1 = class(TForm)
+  TMainFormClass = class(TForm)
     Label1: TLabel;
     edtURL: TEdit;
     btnCallUpdate: TButton;
@@ -21,7 +21,7 @@ type
 
     updateHelper: UpdateHelperClass;
 
-    procedure UpdateInfoReceived(info: string);
+    procedure UpdateInfoReceived(updateInfo: RestAppUpdateInfoClass);
 
     { Private declarations }
   public
@@ -29,7 +29,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainFormClass: TMainFormClass;
 
 implementation
 
@@ -38,7 +38,7 @@ uses
 
 {$R *.dfm}
 
-procedure TForm1.btnCallUpdateClick(Sender: TObject);
+procedure TMainFormClass.btnCallUpdateClick(Sender: TObject);
 begin
 
     memo.Lines.Add('Request Invoked...');
@@ -53,18 +53,29 @@ begin
 
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainFormClass.FormCreate(Sender: TObject);
 begin
 
     updateHelper := UpdateHelperClass.Create; // can provide all init info in constructor if needed
 
 end;
 
-procedure TForm1.UpdateInfoReceived(info: string);
+procedure TMainFormClass.UpdateInfoReceived(updateInfo: RestAppUpdateInfoClass);
 begin
-    memo.Lines.Add(info);
-    memo.Lines.Add('');
+    // memo.Lines.Add(info);
+
     memo.Lines.Add('Request Completed...');
+    memo.Lines.Add('');
+
+    if (updateInfo.UpdateInfoAvailable = false) then
+    begin
+        MessageDlg('Update server error.', mtInformation, [mbOK], 0);
+    end;
+
+    if (updateInfo.UpgradeToVersion <> '') or (updateInfo.DowngradeToVersion <> '') then
+        updateHelper.AppUpdate(updateInfo);
+
+
 end;
 
 end.

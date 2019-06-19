@@ -11,7 +11,7 @@ uses
 
 type
 
-    RestTaskCallback = procedure(response: string) of object;
+    RestTaskCallback = procedure(resultCode: Integer; response: TJSONValue) of object;
     RestAPIClass = class(TObject)
 
     public
@@ -60,12 +60,7 @@ end;
 
 procedure RestAPIClass.GetRest();
 
-var
-    response: string;
-
 begin
-
-    response := '';
 
     // hardcoded to use just 1 request
     restRequest.Params.Clear;
@@ -76,7 +71,8 @@ begin
 
     restRequest.Params.AddItem;
     restRequest.Params[1].name     := 'versionInfo';
-    restRequest.Params[1].value    := AppVersion;
+    // restRequest.Params[1].value    := AppVersion;
+    restRequest.Params[1].value    := '1.0.0.1';
 
     restClient.BaseURL := WebURL + '/api/AppUpdate/GetAppInfo/' + AppID;
 
@@ -84,21 +80,14 @@ begin
 
         try
            restRequest.Execute;
-           response := restResponse.Content;
         except
-            on E : Exception do
-            ShowMessage(E.ClassName+' error raised, with message : '+E.Message);
+            // on E : Exception do
+            // ShowMessage(E.ClassName+' error raised, with message : '+E.Message);
         end;
 
     finally
-
-        ResponseCallback(response);
-
+        ResponseCallback(restResponse.StatusCode,  restResponse.JSONValue);
     end;
-
-
-
-
 
 end;
 
